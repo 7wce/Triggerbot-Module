@@ -1,5 +1,3 @@
--- sorry if it's bunyuns
-
 local function getService(serviceName)
     return cloneref(game:GetService(serviceName))
 end
@@ -39,19 +37,24 @@ local function getPlayerUnderMouse()
 
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
-            local part = getTargetPart(
-                player.Character,
-                triggerBot.Settings.TargetPart
-            )
+            local character = player.Character
+            local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+            local head = character:FindFirstChild("Head")
 
-            if part then
-                local screenPos, visible =
-                    Camera:WorldToViewportPoint(part.Position)
+            if humanoidRootPart and head then
+                local rootPos, rootVisible =
+                    Camera:WorldToViewportPoint(humanoidRootPart.Position)
 
-                if visible then
-                    local distance = (
-                        Vector2.new(screenPos.X, screenPos.Y) - mousePos
-                    ).Magnitude
+                local headPos, headVisible =
+                    Camera:WorldToViewportPoint(head.Position)
+
+                if rootVisible and headVisible then
+                    local centerPos = Vector2.new(
+                        (headPos.X + rootPos.X) / 2,
+                        headPos.Y + ((rootPos.Y - headPos.Y) * 0.25)
+                    )
+
+                    local distance = (centerPos - mousePos).Magnitude
 
                     if distance <= triggerBot.Settings.Radius
                         and distance < closestDistance then
