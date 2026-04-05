@@ -80,7 +80,7 @@ function triggerBot:Start(callback)
 
         local target = getPlayerUnderMouse()
 
-        if target then
+        if target and target ~= LocalPlayer then
             self.CurrentTarget = target
 
             if callback then
