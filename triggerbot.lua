@@ -4,6 +4,7 @@ end
 
 local Players = getService("Players")
 local RunService = getService("RunService")
+local Teams = getService("Teams")
 
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
@@ -11,62 +12,72 @@ local Camera = workspace.CurrentCamera
 local triggerBot = {
     Settings = {
         Enabled = false,
-        Radius = 20,
-        TargetPart = "Head"
+        TeamCheck = true,
+        BlacklistTeam = {}
     },
 
     Connection = nil,
     CurrentTarget = nil
 }
 
-local function getMousePosition()
-    local mouse = LocalPlayer:GetMouse()
-    return Vector2.new(mouse.X, mouse.Y)
-end
+local function teamCheck(player)
+    if player.Team == LocalPlayer.Team then
+        return true
+    end
 
-local function getTargetPart(character, partName)
-    return character:FindFirstChild(partName)
-        or character:FindFirstChild("Head")
-        or character:FindFirstChild("HumanoidRootPart")
+    if triggerBot.Settings.BlacklistTeam[player.Team] then
+        return true
+    end
+
+    return false
 end
 
 local function getPlayerUnderMouse()
-    local mousePos = getMousePosition()
-    local closestPlayer = nil
-    local closestDistance = math.huge
+    local mouse = LocalPlayer:GetMouse()
+    local unitRay = mouse.UnitRay
 
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character then
-            local character = player.Character
-            local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-            local head = character:FindFirstChild("Head")
-
-            if humanoidRootPart and head then
-                local rootPos, rootVisible =
-                    Camera:WorldToViewportPoint(humanoidRootPart.Position)
-
-                local headPos, headVisible =
-                    Camera:WorldToViewportPoint(head.Position)
-
-                if rootVisible and headVisible then
-                    local centerPos = Vector2.new(
-                        (headPos.X + rootPos.X) / 2,
-                        headPos.Y + ((rootPos.Y - headPos.Y) * 0.25)
-                    )
-
-                    local distance = (centerPos - mousePos).Magnitude
-
-                    if distance <= triggerBot.Settings.Radius
-                        and distance < closestDistance then
-                        closestDistance = distance
-                        closestPlayer = player
-                    end
-                end
-            end
-        end
+    local character = LocalPlayer.Character
+    if not character then
+        return nil
     end
 
-    return closestPlayer
+    local rayParams = RaycastParams.new()
+    rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+    rayParams.FilterDescendantsInstances = {character}
+    rayParams.IgnoreWater = true
+
+    local rayDistance = 1000
+    local result = workspace:Raycast(
+        unitRay.Origin,
+        unitRay.Direction * rayDistance,
+        rayParams
+    )
+
+    if not result then
+        return nil
+    end
+
+    local hitPart = result.Instance
+    local hitCharacter = hitPart:FindFirstAncestorWhichIsA("Model")
+
+    if not hitCharacter then
+        return nil
+    end
+
+    local player = Players:GetPlayerFromCharacter(hitCharacter)
+
+    if player and player ~= LocalPlayer then
+        if triggerBot.Settings.TeamCheck == true then
+            local isTeam = teamCheck(player)
+            if isTeam == true then
+                return nil
+            end
+        end
+
+        return player
+    end
+
+    return nil
 end
 
 function triggerBot:Start(callback)
@@ -103,6 +114,34 @@ function triggerBot:Stop()
         self.Connection:Disconnect()
         self.Connection = nil
     end
+end
+
+function triggerBot:Blacklist(team)
+    if not team then
+        return
+    end
+
+    local teamInstance = Teams:FindFirstChild(team)
+    if not teamInstance then
+        return
+    end
+
+    triggerBot.Settings.BlacklistTeam[teamInstance] = true
+    return
+end
+
+function triggerBot:Unblacklist(team)
+    if not team then
+        return
+    end
+
+    local teamInstance = Teams:FindFirstChild(team)
+    if not teamInstance then
+        return
+    end
+
+    triggerBot.Settings.BlacklistTeam[teamInstance] = nil
+    return
 end
 
 return triggerBot
