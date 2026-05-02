@@ -7,7 +7,6 @@ local RunService = getService("RunService")
 local Teams = getService("Teams")
 
 local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
 
 local triggerBot = {
     Settings = {
@@ -19,6 +18,24 @@ local triggerBot = {
     Connection = nil,
     CurrentTarget = nil
 }
+
+local function isDead(player)
+    local Character = player.Character or player.CharacterAdded:Wait()
+    if not Character then
+        return true
+    end
+
+    local Humanoid = Character:FindFirstChild("Humanoid")
+    if Humanoid then
+        return true
+    end
+
+    if Humanoid.Health <= 0 then
+        return true
+    else
+        return false
+    end
+end
 
 local function teamCheck(player)
     if player.Team == LocalPlayer.Team then
@@ -69,7 +86,8 @@ local function getPlayerUnderMouse()
     if player and player ~= LocalPlayer then
         if triggerBot.Settings.TeamCheck == true then
             local isTeam = teamCheck(player)
-            if isTeam == true then
+            local isDead = isDead(player)
+            if isTeam == true and isDead == false then
                 return nil
             end
         end
