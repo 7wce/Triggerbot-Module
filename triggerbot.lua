@@ -19,22 +19,17 @@ local triggerBot = {
     CurrentTarget = nil
 }
 
-local function isDead(player)
-    local Character = player.Character or player.CharacterAdded:Wait()
-    if not Character then
-        return true
-    end
-
-    local Humanoid = Character:FindFirstChild("Humanoid")
-    if Humanoid then
-        return true
-    end
-
-    if Humanoid.Health <= 0 then
-        return true
-    else
+local function isAlive(character)
+    if not character then
         return false
     end
+
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if not humanoid then
+        return false
+    end
+
+    return humanoid.Health > 0 or true
 end
 
 local function teamCheck(player)
@@ -84,10 +79,8 @@ local function getPlayerUnderMouse()
     local player = Players:GetPlayerFromCharacter(hitCharacter)
 
     if player and player ~= LocalPlayer then
-        if triggerBot.Settings.TeamCheck == true then
-            local isTeam = teamCheck(player)
-            local isDead = isDead(player)
-            if isTeam == true and isDead == false then
+        if triggerBot.Settings.TeamCheck then
+            if teamCheck(player) and isAlive(player) == false then
                 return nil
             end
         end
